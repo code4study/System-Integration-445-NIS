@@ -52,8 +52,8 @@ public class EPersonController {
     private static final String UPDATE_EMPLOYEE_API_URL = "http://localhost:8080/springapp/admin/employee/updateEmployeeEPerson";
     private static final String UPDATE_PERSONAL_API_URL = "http://localhost:19335/Personals/updatePersonal";
 
-    private static final String DELETE_EMPLOYEE_API_URL = "http://localhost:8080/springapp/admin/employee/deleteEmployeeById";
-    private static final String DELETE_PERSONAL_API_URL = "http://localhost:19335/Personals/DeleteByEmployeeId";
+    private static final String DELETE_EMPLOYEE_API_URL = "http://localhost:8080/springapp/admin/employee/deleteEmployeeByIdByEPerson";
+    private static final String DELETE_PERSONAL_API_URL = "http://localhost:19335/Personals/deletePersosalByEPersonId";
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();

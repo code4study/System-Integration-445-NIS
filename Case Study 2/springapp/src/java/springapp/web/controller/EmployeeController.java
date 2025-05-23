@@ -38,6 +38,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.ResponseBody;
 import springapp.web.model.Personal;
@@ -735,10 +737,44 @@ public class EmployeeController {
             return new ResponseEntity<>("Lỗi khi xoá employee", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    private static final String DELETE_PERSONAL_API_URL = "http://localhost:19335/Personals/DeletePersonalByEmployeeId";
 
     @RequestMapping(value = {"employee/deleteEmployeeById/{id}"}, method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteEmployeeById(@PathVariable("id") int id) {
-       System.out.println("Called from eperson ok desu");
+        System.out.println("Called from sprignapp ok desu");
+        try {
+            RestTemplate temp = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+            map.add("id", String.valueOf(id));
+            // goi api xoa personal
+            edao.deleteById(id);
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+            temp.postForEntity(DELETE_PERSONAL_API_URL, request, String.class);
+
+            clearEmployeeCache();
+
+            try {
+                RestTemplate rest = new RestTemplate();
+                String cacheUrl = "http://localhost:8888/springapp_show/admin/EPerson/clearCache";
+                rest.getForObject(cacheUrl, String.class);
+                System.out.println("Da xoa cache");
+
+            } catch (Exception e) {
+                System.err.println("Loi khi xoa cache" + e.getMessage());
+            }
+            return new ResponseEntity<>("Đã xoá employee với id = " + id + "", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Lỗi khi xoá employee", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @RequestMapping(value = {"employee/deleteEmployeeByIdByEPerson/{id}"}, method = RequestMethod.DELETE)
+    public ResponseEntity<String> deleteEmployeeByIdByEPerson(@PathVariable("id") int id) {
+        System.out.println("Called from eperson ok desu");
         try {
 
             edao.deleteById(id);
@@ -755,6 +791,31 @@ public class EmployeeController {
             }
             return new ResponseEntity<>("Đã xoá employee với id = " + id + "", HttpStatus.OK);
         } catch (Exception e) {
+            return new ResponseEntity<>("Lỗi khi xoá employee", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @RequestMapping(value = {"employee/deleteEmployeeByIdByPersonal/{id}"}, method = RequestMethod.DELETE)
+    public ResponseEntity<String> deleteEmployeeByIdByPersonal(@PathVariable("id") int id) {
+        System.out.println("Called from personal ok desu");
+        try {
+
+            edao.deleteById(id);
+            clearEmployeeCache();
+
+            try {
+                RestTemplate rest = new RestTemplate();
+                String cacheUrl = "http://localhost:8888/springapp_show/admin/EPerson/clearCache";
+                rest.getForObject(cacheUrl, String.class);
+                System.out.println("Da xoa cache");
+
+            } catch (Exception e) {
+                System.err.println("Loi khi xoa cache" + e.getMessage());
+            }
+            return new ResponseEntity<>("Đã xoá employee với id = " + id + "", HttpStatus.OK);
+        } catch (Exception e) {
+            System.out.println("Lỗi khi xoá EMPLOYEE: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>("Lỗi khi xoá employee", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

@@ -587,8 +587,11 @@ public JsonResult DeleteAllPersonals()
             }
         }
 
+       
+
+        // duoc goi tu spring app
         [HttpPost]
-        public ActionResult DeleteByEmployeeId(int id)
+        public ActionResult DeletePersonalByEmployeeId(int id)
 {
     try
     {
@@ -613,6 +616,63 @@ public JsonResult DeleteAllPersonals()
         return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
     }
 }
+        // duoc goi tu eperson
+        [HttpPost]
+        public ActionResult deletePersosalByEPersonId(int id)
+        {
+            try
+            {
+                Personal personal = db.Personals.Find(id);
+                db.Personals.Remove(personal);
+                db.SaveChanges();
+                if (personal == null)
+                {
+                    return Json(new { success = false, message = "Personal not found" }, JsonRequestBehavior.AllowGet);
+                }
+                // Xóa cache
+                RedisService.DeleteCache("personalList");
+                // Gửi thông báo realtime
+                WebSocketServerManager.Broadcast("new-personal");
+                Task.Run(async () => await ClearCacheAsync());
+
+
+                return Json(new { success = true, message = $"Đã xoá Personal với ID = {id}" }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+        [HttpPost]
+        // Personals/DeleteEmployeeByIdByPersonal/5
+        public ActionResult DeleteEmployeeByIdByPersonal(int id)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    string apiUrl = $"http://localhost:8080/springapp/admin/employee/deleteEmployeeByIdByPersonal/{id}";
+
+                    HttpResponseMessage response = client.DeleteAsync(apiUrl).Result;
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"❌ Không thể xoá employee có ID {id}, mã lỗi: {response.StatusCode}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"✅ Đã gọi xoá employee ID {id}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi gọi API xoá employee: {ex.Message}");
+                return Json(new { success = false, message = $"❌ Lỗi khi gọi API xoá employee: {ex.Message}" });
+            }
+
+            return Json(new { success = true, message = $"✅ Xóa thành công employee từ Personals 222!" });
+        }
 
 
 
@@ -738,6 +798,7 @@ public JsonResult DeleteAllPersonals()
             }
             return View(personal);
         }
+        
 
         // POST: Personals/Delete/5
         [HttpPost, ActionName("Delete")]
@@ -746,13 +807,17 @@ public JsonResult DeleteAllPersonals()
         {
             Personal personal = db.Personals.Find(id);
             db.Personals.Remove(personal);
+            DeleteEmployeeByIdByPersonal((int)id);
             db.SaveChanges();
             // xóa cache
             RedisService.DeleteCache("personalList");
             // Gửi thông báo realtime
             WebSocketServerManager.Broadcast("new-personal");
 
-            Task.Run(async () => await ClearCacheAsync());
+            Task.Run(async () =>
+            {
+                await ClearCacheAsync(); 
+            });
             return RedirectToAction("Index");
         }
 
