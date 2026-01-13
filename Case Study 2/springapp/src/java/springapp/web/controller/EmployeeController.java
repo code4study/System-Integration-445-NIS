@@ -42,6 +42,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.ResponseBody;
+import service.EmployeeSender;
 import springapp.web.model.Personal;
 
 /**
@@ -55,6 +56,7 @@ import springapp.web.model.Personal;
 public class EmployeeController {
 
     EmployeeDao edao = new EmployeeDao();
+    private EmployeeSender sender = new EmployeeSender();
     Jedis jedis = RedisConfig.getJedis();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String UPDATE_PERSONAL_API_URL = "http://localhost:19335/Personals/updatePersonal";
@@ -316,7 +318,9 @@ public class EmployeeController {
             list.add(employee);
             edao.insertBatch(list);
 
-            createPersonalFromEmployee(employee);
+          //  createPersonalFromEmployee(employee);
+          // rabbit
+          sender.sendEmployeeCreatedMessage(employee);
             clearEmployeeCache();
             try {
                 RestTemplate rest = new RestTemplate();

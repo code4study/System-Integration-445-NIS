@@ -17,6 +17,7 @@ using Microsoft.AspNet.SignalR;
 using System.Diagnostics;
 using Newtonsoft.Json;
 using System.Text;
+using RabbitMQ.Client;
 //using System.Web.Mvc;
 
 
@@ -26,6 +27,8 @@ namespace HRWebApp.Controllers
     {
         private HRDB db = new HRDB();
         private CacheCleaner cacheCleaner = new CacheCleaner();
+        // 
+        EmployeeReceiver employeeReceiver = new EmployeeReceiver();
 
         // GET: Personals
         public ActionResult Index()
@@ -54,6 +57,19 @@ namespace HRWebApp.Controllers
             // var personals = db.Personals.Include(p => p.Benefit_Plans1).Include(p => p.Emergency_Contacts).Include(p => p.Employment);
             return View(personals);
         }
+
+        public void SendPersonalCreatedMessage(string id, string firstName, string lastName)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost",Port = 5672 };
+             var connection = factory.CreateConnection();
+             var channel = connection.CreateModel();
+            channel.QueueDeclare(queue: "AE", durable: false, exclusive: false, autoDelete: false, arguments: null);
+            string message = $"{id}|{firstName}|{lastName}";
+            var body = Encoding.UTF8.GetBytes(message);
+            channel.BasicPublish(exchange: "", routingKey: "AE", basicProperties: null, body: body);
+            Console.WriteLine(" [x] Sent " + message);
+        }
+
 
         //GET: Personals/getAllPersonal
         public JsonResult getAllPersonal()
@@ -341,6 +357,45 @@ namespace HRWebApp.Controllers
                 return new HttpStatusCodeResult(500, ex.Message);
             }
         }
+        public void CreatePersonalFromMessageFromEmployee(string message)
+        {
+            var parts = message.Split('|');
+            if (parts.Length == 3)
+            {
+                var empId = int.Parse(parts[0]);
+                var firstName = parts[1];
+                var lastName = parts[2];
+
+                var personal = new Personal
+                {
+                    Employee_ID = empId,
+                    First_Name = firstName,
+                    Last_Name = lastName
+                };
+
+                // Lưu vào DB, hoặc gọi service để xử lý tiếp
+                using (var context = new HRDB())
+                {
+                    context.Personals.Add(personal);
+                    context.Configuration.AutoDetectChangesEnabled = true;
+                    context.SaveChanges();
+                }
+
+                // Xóa cache
+                RedisService.DeleteCache("personalList");
+                //  Gửi thông báo realtime
+                WebSocketServerManager.Broadcast("new-personal");
+
+                Task.Run(async () => await ClearCacheAsync());
+
+                Console.WriteLine($"Tạo personal: {empId}, {firstName} {lastName}");
+            }
+            else
+            {
+                Console.WriteLine("⚠ Message không đúng định dạng.");
+            }
+        }
+
 
         public ActionResult generateAEmployeeFromPersonal(Personal per)
         {

@@ -20,6 +20,7 @@ public class EPersonSocketController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
     
+    
     public void bcMergeData(List<EPerson> data)
     {
         messagingTemplate.convertAndSend("/topic/eperson",data);

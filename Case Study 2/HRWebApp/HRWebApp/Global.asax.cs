@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Routing;
+using System.Web.Services.Description;
 
 namespace HRWebApp
 {
@@ -14,6 +15,11 @@ namespace HRWebApp
             AreaRegistration.RegisterAllAreas();
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             WebSocketServerManager.Start();
+            System.Threading.ThreadPool.QueueUserWorkItem(o =>
+            {
+                var receiver = new EmployeeReceiver();
+                receiver.StartReceiving();
+            });
 
         }
         protected void Session_End(Object sender, EventArgs e)
